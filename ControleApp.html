@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Controler Demo App</title>
+
+    <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        });
+    </script>
+    <script async="" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML" 
+            type="text/javascript">
+    </script>
+
+    <link type="text/css" rel="stylesheet" href="lib/litegui/build/litegui.css">
+
+    <script type="text/javascript" src="lib/litegui/external/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="lib/litegui/external/jquery-ui-1.10.4.min.js"></script>
+    <script type="text/javascript" src="lib/litegui/external/jscolor/jscolor.js"></script>
+
+    <script type="application/javascript" src="lib/litegui/build/litegui.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/4.3.0/math.min.js"></script>
+    <script src="lib/numeric-1.2.6.min.js"></script>
+
+    <style>
+        .inspector .wcontent input.nano {
+            width: 2.5em;
+        }
+        div.separator {
+            width: 300px;
+        }
+    </style>
+
+    <template id="math-info-text">
+        <p>
+            Using Lagrangien Mechanics one can show, that the following
+            describes the displayed system:
+        </p>
+        $$
+            \ddot{x} = \frac{-m g \sin(\theta) + m l \dot{\theta}^2 \sin(\theta) + 
+                            f_\theta m \dot{\theta} \cos(\theta) + F}
+                            {M+(1-\cos^2(\theta))m} 
+        $$
+        <br/>
+        $$
+            \ddot{\theta} = \frac{(M+m)(g \sin(\theta) - f_\theta \dot{\theta}) - 
+                            (l m \dot{\theta}^2 \sin(\theta) + F) \cos(\theta)}
+                            {l ( M + ( 1 - \cos^2(\theta) ) m )} 
+        $$
+    </template>
+</head>
+<body>
+    <script type="text/javascript">
+
+        function invertedPendulumSvg(options) {
+            var c = "";
+            c += `
+                <center>
+                <svg viewbox="-1, -0.5, 2, 1" width="95%">
+                    <marker orient="auto" refY="0" refX="0" id="marker_arrow" style="overflow:visible">
+                        <path d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+                            style="stroke: black; fill: black;"
+                            transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+                    </marker>
+                    <marker orient="auto" refY="0" refX="0" id="marker_arrow_purple" style="overflow:visible">
+                        <path d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+                            style="stroke: purple; fill: purple;"
+                            transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+                    </marker>
+                    <marker orient="auto" refY="0" refX="0" id="marker_arrow_green" style="overflow:visible">
+                        <path d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+                            style="stroke: #00AA00; fill: #00AA00;"
+                            transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+                    </marker>
+                    <marker orient="auto" refY="0" refX="0" id="marker_arrow_blue" style="overflow:visible">
+                        <path d="M 0,0 5,-5 -12.5,0 5,5 0,0 Z"
+                            style="stroke: #000055; fill: #000055;"
+                            transform="matrix(-0.4,0,0,-0.4,-4,0)" />
+                    </marker>
+                    <g transform="scale(1, -1)">
+                        <path d="m 0,-0.5, 0,0.95"
+                            style="stroke:black;stroke-width:0.01;marker-end:url(#marker_arrow)" />
+                        <path d="m -1,0, 1.9,0"
+                            style="stroke:black;stroke-width:0.01;marker-end:url(#marker_arrow)" />
+                        <g id="black_markers">
+                        `;
+            function marker_text(stroke, params) {
+                s = "";
+                for(x = -1.0; x < 1.0; x += 0.2) {
+                    s +=  '<line y1="-0.03" y2="0.03" x1="' + x + '" x2="' + x 
+                        + '" stroke="' + stroke + '" stroke-width="0.005" />\n';
+                }
+                return s;
+            }
+            c += marker_text("black");
+            c +=        `
+                        </g>
+                        
+                        <g id="cart" transform="">
+                            <rect x="-0.1" y="-0.05" width="0.2" height="0.1" fill="#0000FF" stroke="black" stroke-width="0.007"
+                                fill-opacity="0.5" />
+                            <line x1="-0.1" y1="-0.05" x2="0.1" y2="0.05" stroke="black" stroke-width="0.007" />
+                            <line x1="-0.1" y1="0.05" x2="0.1" y2="-0.05" stroke="black" stroke-width="0.007" />
+                            `
+            if (options && options.show_force_vec) {
+                c += `      <path d="m 0,0, 0.2,0" id="Force"
+                                style="stroke:purple;stroke-width:0.01;marker-end:url(#marker_arrow_purple)" />`
+            }
+            if (options && options.show_vilocity_vec) {
+                c += `      <path d="m 0,0, 0.2,0" id="vilocity"
+                                style="stroke:#000055;stroke-width:0.01;marker-end:url(#marker_arrow_blue)" />`
+            }
+            c += `
+                            <g id="pendulum" transform="">
+                                <line x1="0" y1="0" x2="0" y2="0.3" stroke="red" stroke-width="0.02" 
+                                    stroke-linecap="round" />
+                                <circle cx="0" cy="0.3" r="0.05" fill="green" stroke="black" stroke-width="0.007" />
+                                <circle cx="0" cy="0.3" r="0.003" fill="none" stroke="black" stroke-width="0.002" />
+                                <circle cx="0" cy="0" r="0.003" fill="none" stroke="black" stroke-width="0.002" />
+                                `
+            if (options && options.show_angular_vilocity) {
+                c += `          <path id="angular-arrow" d="M0,0.3 a0.3,0.3, 0, 0,0 0.3,-0.3" 
+                                    fill="none" stroke="#00AA00" stroke-width="0.007"
+                                    marker-end="url(#marker_arrow_green)" />`
+            }
+            c += `          </g>
+                        </g>
+                    </g>
+                </svg>
+                </center>
+            `;
+            return c;
+        }
+
+        function matrix_table(A, id_prefix) {
+            var s = "<table border='1' style='width: 100%'>";
+            for(var j = 0; j < A.length; j++) {
+                s += "<tr>";
+                for(var i = 0; i < A[j].length; i++) {
+                    s += (id_prefix ? ("<td id='"+id_prefix+"_"+i+"_"+j+"' align='center'>") 
+                                : "<td align='center'>") 
+                         + A[j][i].toFixed(2) + "</td>"
+                }
+                s += "</tr>";
+            }
+            s += "</table>";
+            return s;
+        }
+
+        function list_table(L, id_prefix) {
+            var s = "<table border='1' style='width: 100%'>";
+            for(var j = 0; j < L.length; j++) {
+                s += "<tr>";
+                s += (id_prefix ? "<td id='"+id_prefix+"_"+j+"' align='center'>" 
+                            : "<td align='center'>") 
+                        + L[j] + "</td>"
+                s += "</tr>";
+            }
+            s += "</table>";
+            return s;
+        }
+
+        function show_state() {
+            var cart = document.getElementById("cart");
+            if(cart) {
+                var x = state.x;
+                x = x == NaN ? 0 : x;
+                cart.setAttribute('transform', "translate("+x+", 0)");
+            }
+            var pendulum = document.getElementById("pendulum");
+            if(pendulum) {
+                var p = state.p;
+                p = p == NaN ? 0 : p;
+                pendulum.setAttribute('transform', "rotate("+(-180*p/Math.PI)+")");
+            }
+            var angular = document.getElementById("angular-arrow");
+            if(angular) {
+                var p = state.P
+                p = p == NaN ? 0 : p;
+                p = p < 2*Math.PI ? p : 2*Math.PI - 0.00001;
+                p = p > -2*Math.PI ? p : -2*Math.PI + 0.00001;
+                angular.setAttribute("d", "M0,0.3 a0.3,0.3, 0,"
+                    +(p < Math.PI && p > -Math.PI ? "0": "1")
+                    +", "+(p < 0 ? "1" : "0")
+                    +", "+(0.3*Math.sin(p))+","
+                    +(-0.3+0.3*Math.cos(p)));
+            }
+            var vilocity = document.getElementById("vilocity");
+            if(vilocity) {
+                var x = state.X;
+                x = x == NaN ? 0 : x;
+                vilocity.setAttribute("d", 'm 0,0, '+x+',0');
+            }
+            var force = document.getElementById("Force");
+            if(force) {
+                var f = Force == NaN ? 0 : x;
+                force.setAttribute("d", 'm 0,0, '+0.5*f+',0');
+            }
+
+            var mode_show_state = modes[current_mode].show_state;
+            if (mode_show_state) mode_show_state();
+        }
+
+        function diffEq(x, xdot, theta, thetadot, F) {
+            var c = constants;
+            return [
+                xdot,
+                (-c.m*c.g*Math.sin(theta)*Math.cos(theta) + c.m*c.l*thetadot*thetadot*Math.sin(theta) +
+                    c.f_theta*c.m*thetadot*Math.cos(theta) + F)
+                    /(c.M+(1-Math.pow(Math.cos(theta),2))*c.m),
+                thetadot,
+                ((c.M+c.m)*(c.g*Math.sin(theta) - c.f_theta*thetadot) - 
+                            (c.l*c.m*thetadot*thetadot*Math.sin(theta) + F)*Math.cos(theta))
+                    /(c.l*(c.M+(1-Math.pow(Math.cos(theta), 2))*c.m))
+            ];
+            
+        }
+
+        function matrixA(state, F) {
+            var s = state;
+            var c = constants;
+            var m = c.m, M = c.M, f = c.f_theta, l = c.l, g = c.g;
+            A = [];
+
+            A[0] = 0;
+            A[1] = 1;
+            A[2] = 0;
+            A[3] = 0;
+            A[4] = 0;
+            A[5] = 0;
+            A[6] = m*(Math.pow(s.P, 2)*l*m*Math.cos(s.p) - s.P*f*m*Math.sin(s.p) - g*m*Math.cos(s.p))/(M - Math.pow(Math.cos(s.p), 2) + 1) - 2*m*(F + Math.pow(s.P, 2)*l*m*Math.sin(s.p) + s.P*f*m*Math.cos(s.p) - g*m*Math.sin(s.p))*Math.sin(s.p)*Math.cos(s.p)/Math.pow(M - Math.pow(Math.cos(s.p), 2) + 1, 2);
+            A[7] = m*(2*s.P*l*m*Math.sin(s.p) + f*m*Math.cos(s.p))/(M - Math.pow(Math.cos(s.p), 2) + 1);
+            A[8] = 0;
+            A[9] = 0;
+            A[10] = 0;
+            A[11] = 1;
+            A[12] = 0;
+            A[13] = 0;
+            A[14] = -2*m*(-(F + Math.pow(s.P, 2)*l*m*Math.sin(s.p))*Math.cos(s.p) + (M + m)*(-s.P*f + g*Math.sin(s.p)))*Math.sin(s.p)*Math.cos(s.p)/(l*Math.pow(M + m*(-Math.pow(Math.cos(s.p), 2) + 1), 2)) + (-Math.pow(s.P, 2)*l*m*Math.pow(Math.cos(s.p), 2) + g*(M + m)*Math.cos(s.p) + (F + Math.pow(s.P, 2)*l*m*Math.sin(s.p))*Math.sin(s.p))/(l*(M + m*(-Math.pow(Math.cos(s.p), 2) + 1)));
+            A[15] = (-2*s.P*l*m*Math.sin(s.p)*Math.cos(s.p) - f*(M + m))/(l*(M + m*(-Math.pow(Math.cos(s.p), 2) + 1)));
+            
+            return math.reshape(A, [4, 4]);
+        }
+
+        function matrixB(state, F) {
+            var s = state;
+            var c = constants;
+            var m = c.m, M = c.M, f = c.f_theta, l = c.l, g = c.g;
+            B = [];
+
+            B[0] = 0;
+            B[1] = m/(M - Math.pow(Math.cos(s.p), 2) + 1);
+            B[2] = 0;
+            B[3] = -Math.cos(s.p)/(l*(M + m*(-Math.pow(Math.cos(s.p), 2) + 1)));
+
+            return math.reshape(B, [4, 1]);
+        }
+
+        function odeint(diffeq, dt, state, F) {
+            var a = state.x, b = state.X, c = state.p, d = state.P;
+            var R = diffeq(a, b, c, d, F(a, b, c, d));
+            var A = R[0], B = R[1], C = R[2], D = R[3];
+            return {
+                x: a + A*dt,
+                X: b + B*dt,
+                p: c + C*dt,
+                P: d + D*dt
+            };
+        }
+
+        function range(a, b, c) {
+            c = c ? c : 1;
+            l = [];
+            for(var i = a; i < b; i += c)
+                l.push(i);
+            return l;
+        }
+
+        function controlability(A, B) {
+            var N = math.size(A)[1];
+            var M = math.size(B);
+            var a = math.eye(N);
+            var cur = 0;
+            var b = N*M[1];
+            var C = math.zeros(N, b);
+            const rows = range(0, N);
+            for(var n = 0; n < N; n++) {
+                c = math.multiply(a, B);
+                var s = math.size(c).toArray();
+                C = math.subset(C, math.index(rows, (s[1]>1 ? range(cur, cur+s[1]) : [cur]) ), c);
+                a = math.multiply(a, A);
+                cur += s[1];
+            }
+            return C;
+        }
+
+        function place_poles(A, B, p) {
+            var sizeA = math.size(A);
+            var unit = math.zeros(1, sizeA[1]);
+            unit = math.subset(unit, math.index([0], [sizeA[1]-1]), 1);
+            var C = controlability(A, B);
+            var D = math.eye(sizeA[1]);
+            var I = math.eye(sizeA[1]);
+            for(var i = 0; i < p.length; i++)
+                D = math.multiply(D, math.add(A, math.multiply(math.multiply(-1, p[i]), I)));
+            return math.multiply(math.multiply(unit, math.inv(C)), D);
+        }
+
+        LiteGUI.init();
+
+        var state = { x: -0.3, X: 0.0, p: Math.PI/8, P: 0.0}; // capital letters denote dirivatives
+        var default_state = { x: 0.3, X: 0.0, p: -Math.PI/8, P: 0.0};
+        var constants = { M: 1, m: 1, l: 0.3, g: 1, f_theta: 0.05 };
+
+        var Force = 0.0;
+
+        console.log("place_poles ", place_poles(
+            matrixA({x:0, X:0, p:0, P:0}, 0),
+            matrixB({x:0, X:0, p:0, P:0}, 0),
+            [  
+                math.complex(-3,0),
+                math.complex(-2,0),
+                math.complex(-1, -0.5),
+                math.complex(-1, 0.5)
+            ]));
+
+        var widgets = {
+            mainarea: new LiteGUI.Area({ content_id:"mainarea", autoresize: true, inmediateResize: true }),
+            side_area: new LiteGUI.Area({ content_id:"side_area", autoresize: true, inmediateResize: true}),
+            side_top_panel: new LiteGUI.Panel({ title: "General", autoresize: true, inmediateResize: true }),
+            side_bottom_panel: new LiteGUI.Panel({ title: "Mode specific Data", autoresize: true, inmediateResize: true, scroll: true}),
+            mode_inspector: new LiteGUI.Inspector({ title: "General Data", autoresize: true, inmediateResize: true}),
+            inspector: new LiteGUI.Inspector({ title: "Mode specific Data", autoresize: true, inmediateResize: true}),
+            central_area: new LiteGUI.Area({ title: "Output", autoresize: true, inmediateResize: true }),
+        }
+
+        var modes = {
+            initial_condition: {
+                // private
+                dynamic_var_widgets: {x:null, X:null, p:null, P:null},
+                // public
+                name: "Initial Condition",
+                central_html: invertedPendulumSvg({
+                    show_angular_vilocity: true, show_vilocity_vec: true }),
+                init: function () {
+                    show_state();
+                    dyn = modes.initial_condition.dynamic_var_widgets;
+                    widgets.inspector.addTitle("Dynamic Variables");
+                    dyn.x = widgets.inspector.addSlider("x", state.x, {min: -1.0, max: 1.0, step: 0.01,
+                        empadding: "3",
+                        callback: function(x) { state.x = x; show_state(); }
+                    });
+                    dyn.X = widgets.inspector.addNumber("diff(x, t)", state.X, {step: 0.01,
+                        callback: function(X) { state.X = X; show_state(); }
+                    });
+                    dyn.p = widgets.inspector.addSlider("theta", state.p, {min: -Math.PI, max: Math.PI, step: 0.01,
+                        empadding: "3",
+                        callback: function(tt) { state.p = tt; show_state(); }
+                    });
+                    dyn.P = widgets.inspector.addNumber("diff(theta, t)", state.P, { step: 0.01,
+                        callback: function(ttdt) { state.P = ttdt; show_state(); }
+                    });
+                    widgets.inspector.addButton("save", "save as default state", {
+                        callback: function() {
+                            for(var n in state) if(state.hasOwnProperty(n))
+                                default_state[n] = state[n];
+                         }
+                    })
+                    widgets.inspector.addTitle("System Constants");
+                    widgets.inspector.inspectInstance(constants);
+                },
+                reload: function () {
+                    var dyn = modes.initial_condition.dynamic_var_widgets;
+                    for (var n in dyn) if (dyn.hasOwnProperty(n)) {
+                        dyn[n].setValue(state[n]);
+                    }
+                },
+                clear: function () {
+                    widgets.inspector.clear();
+                    modes.initial_condition.dynamic_var_widgets = {x:null, X:null, p:null, P:null};
+                }
+            },
+            simulation_only: {
+                // private
+                table: null,
+                build_dynamic_array: function () {
+                    return [
+                        { v: "x", f: state.x.toFixed(3) },
+                        { v: "diff(x, t)", f: state.X.toFixed(3) },
+                        { v: "theta", f: state.p.toFixed(3) },
+                        { v: "diff(theta, t)", f: state.P.toFixed(3) },
+                    ];
+                },
+                // public
+                name: "Simulation Only",
+                central_html: invertedPendulumSvg(),
+                init: function () {
+                    var so = modes[current_mode];
+                    so.table = new LiteGUI.Table();
+                    so.table.setColumns([
+                        { name: "Variable", field: "v" },
+                        { name: "Value", field: "f" }, 
+                    ]);
+                    var a = so.build_dynamic_array();
+                    for(var i = 0; i < a.length; i++) 
+                        so.table.addRow(a[i]);
+                    widgets.side_bottom_panel.add(so.table);
+                    show_state();
+                },
+                simulation: function() {
+                    var N = function() {return 0.0;};
+                    for(var i = 0; i < 200; i++) {
+                        state = odeint(diffEq, 0.0001, state, N);
+                    }
+                    show_state();
+                },
+                show_state : function() {
+                    var so = modes[current_mode];
+                    var a = so.build_dynamic_array();
+                    for(var i = 0; i < a.length; i++)
+                        so.table.updateRow(i, a[i]);
+                },
+                clear: function () {
+                    var so = modes[current_mode];
+                    widgets.side_bottom_panel.content.innerHTML = "";
+                    so.table = null;
+                    widgets.side_bottom_panel.add(widgets.inspector);
+                }
+            },
+            proportional_controler: {
+                // private
+                K: [-2.24550898, -5.57399423, -8.1311883 , -3.67687514],
+                running: false,
+                eig_widgets: [null, null, null, null],
+                s: {x:0, X:0, p:0, P:0},
+                F: 0,
+                A: matrixA({x:0, X:0, p:0, P:0}, 0),
+                B: matrixB({x:0, X:0, p:0, P:0}, 0),
+                Kwidget: [],
+                update_abk: function() {
+                    var so = modes.proportional_controler;
+                    var K = math.reshape(so.K, [1, 4]);
+                    var M = math.add(so.A, math.multiply(-1, math.multiply(so.B, K)));
+                    for(var j = 0; j < 4; j++) for(var i = 0; i < 4; i++) {
+                        var el = document.getElementById("matM_"+i+"_"+j);
+                        el.innerHTML = M[j][i].toFixed(2);
+                    }
+                },
+                update_matrix: function() {
+                    var so = modes.proportional_controler;
+                    for(var i=0; i < 4; i++) {
+                        so.K[i] = so.Kwidget[i].getValue();
+                    }
+                    so.update_abk();
+                    var eig = numeric.eig(M);
+                    for(var i = 0; i < eig.lambda.x.length; i++) {
+                        /*var el = document.getElementById("lam_"+i);
+                        var s = eig.lambda.x[i].toFixed(2) + " + i " + 
+                                (eig.lambda.y ? eig.lambda.y[i].toFixed(2) : "0.00");
+                        el.innerHTML = s;*/
+                        var re = eig.lambda.x ? eig.lambda.x[i].toFixed(2) : 0;
+                        var im = eig.lambda.y ? eig.lambda.y[i].toFixed(2) : 0;
+                        so.eig_widgets[i].setValue([re, im]);
+                    }
+                    
+                },
+
+                // public
+                name: "Proportional Controller",
+                central_html: invertedPendulumSvg({show_force_vec: true}),
+                init: function () {
+                    var so = modes.proportional_controler;
+                    widgets.inspector.addCheckbox("running", so.running, {
+                        callback: function (r) { modes.proportional_controler.running = r; }
+                    });
+                    widgets.inspector.addTitle("K matrix Elements");
+                    for(var i = 0; i < 4; i++) {
+                        so.Kwidget.push(widgets.inspector.addNumber("K["+i+"]", so.K[i], {
+                                callback: so.update_matrix,
+                            }));
+                    }
+                    /*widgets.inspector.inspectInstance(so.K, {
+                        callback: so.update_matrix
+                    });*/
+                    widgets.inspector.addTitle("A matrix Elements");
+                    widgets.inspector.addInfo("A", matrix_table(so.A, "matA"));
+                    widgets.inspector.addTitle("B matrix Elements");
+                    widgets.inspector.addInfo("B", matrix_table(so.B, "matB"));
+                    var K = math.reshape(so.K, [1, 4]);
+                    var M = math.add(so.A, math.multiply(-1, math.multiply(so.B, K)));
+                    widgets.inspector.addTitle("A-BK matrix Elements");
+                    widgets.inspector.addInfo("A-BK", matrix_table(M, "matM"));
+                    widgets.inspector.addTitle("eig(A-BK) matrix Elements");
+                    var eig = numeric.eig(M);
+                    
+                    /*lam = [];
+                    for(var i = 0; i < eig.lambda.x.length; i++)
+                        lam.push(eig.lambda.x[i].toFixed(2) + " + i " + 
+                                    (eig.lambda.y ? eig.lambda.y[i].toFixed(2) : "0.00"));
+                    widgets.inspector.addInfo("eig(A-BK)", list_table(lam, "lam"));*/
+
+                    for(var i = 0; i < 4; i++) {
+                        var re = eig.lambda.x ? eig.lambda.x[i].toFixed(2) : 0;
+                        var im = eig.lambda.y ? eig.lambda.y[i].toFixed(2) : 0;
+                        so.eig_widgets[i] = widgets.inspector.addVector2("eig["+i+"]", [re, im], {
+                            callback: function() {
+                                var so = modes.proportional_controler;
+                                var eigs = [];
+                                for (var i = 0; i < so.eig_widgets.length; i++) {
+                                    var v = so.eig_widgets[i].getValue();
+                                    console.log(v);
+                                    eigs.push(math.complex(v[0], v[1]));
+                                }
+                                var K = place_poles(so.A, so.B, eigs)._data[0];
+                                for(var i = 0; i < so.Kwidget.length; i++) {
+                                    console.log("K["+i+"] = "+K[i].re);
+                                    so.Kwidget[i].setValue(K[i].re, true);
+                                    so.K[i] = K[i].re;
+                                }
+                                so.update_abk();
+                            }
+                        });
+                    }
+
+                    widgets.inspector.addTitle("The End");
+
+                    show_state();
+                },
+                simulation: function() {
+                    var so  = modes.proportional_controler;
+                    if (so.running) {
+                        var F = function(x, X, p, P) { 
+                            return -so.K[0]*x - so.K[1]*X - so.K[2]*p - so.K[3]*P; 
+                        };
+                        for(var i = 0; i < 200; i++) {
+                            state = odeint(diffEq, 0.0001, state, F);
+                        }
+                        Force = F(state.x, state.X, state.p, state.P);
+                        show_state();
+                    }
+                },
+                clear: function () {
+                    widgets.inspector.clear();
+                    var so = modes.proportional_controler;
+                },
+            }
+        }
+
+        var current_mode = "initial_condition"; // key of currently active mode
+        
+		widgets.mainarea.split("horizontal", [300, null], true);
+		LiteGUI.add(widgets.mainarea);
+        widgets.mainarea.getSection(0).add(widgets.side_area);
+        widgets.side_top_panel.add(widgets.mode_inspector);
+
+        widgets.side_area.split("vertical", [100, null], true);
+
+        widgets.side_area.getSection(0).add(widgets.mode_inspector);
+        var name_to_key_dict = {};
+        var v = [];
+        for(var i in modes) if(modes.hasOwnProperty(i)) {
+            var name = modes[i].name;
+            v.push(""+name);
+            name_to_key_dict[name] = i;
+        }
+        widgets.mode_inspector.addCombo("Mode", v[0], { 
+            values: v,
+            callback: function (v) {
+                var clear = modes[current_mode].clear;
+                if(clear) clear();
+                current_mode = name_to_key_dict[v];
+                var mode = modes[current_mode];
+                widgets.central_area.content.innerHTML = mode.central_html ? mode.central_html : ""; 
+                if(mode.init) mode.init();
+            } 
+        });
+        v = null; // free for garbage collection 
+        widgets.mode_inspector.addButton("Math and Info", "Open", {
+            callback: function() {
+                var dialog = new LiteGUI.Dialog({
+                    title: "Math and Info", 
+                    close: true, 
+                    width: 600, 
+                    scroll: true, 
+                    draggable: true
+                });
+                dialog.content.innerHTML = 
+                    document.getElementById("math-info-text").innerHTML;
+                MathJax.Hub.Typeset(dialog.content);
+
+                dialog.show();
+	            dialog.adjustSize();
+            }
+        });
+        widgets.mode_inspector.addButton("load", "Load default state", {
+            callback: function() { 
+                for(var n in state) if(state.hasOwnProperty(n))
+                    state[n] = default_state[n];
+                var reload = modes[current_mode].reload;
+                if (reload) reload();
+                show_state();
+            }
+        });
+
+        widgets.mainarea.getSection(1).add(widgets.central_area);
+        widgets.side_area.getSection(1).add(widgets.side_bottom_panel);
+        widgets.side_bottom_panel.add(widgets.inspector);
+
+        widgets.central_area.content.innerHTML = modes[current_mode].central_html ? modes[current_mode].central_html : "";
+        if(modes[current_mode].init) modes[current_mode].init();
+
+        function Simulation() {
+            var sim = modes[current_mode].simulation;
+            if(sim) sim();
+            requestAnimationFrame(Simulation);
+        }
+        requestAnimationFrame(Simulation);
+    </script>
+</body>
+</html>
